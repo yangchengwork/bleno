@@ -27,6 +27,12 @@ __Note:__ Mac OS X and Linux are currently the only supported OSes.
 sudo apt-get install bluetooth bluez-utils libbluetooth-dev
 ```
 
+#### Fedora / Other-RPM based
+
+```sh
+sudo yum install bluez bluez-libs bluez-libs-devel
+```
+
 #### Intel Edison
 
 See [Configure Intel Edison for Bluetooth LE (Smart) Development](http://rexstjohn.com/configure-intel-edison-for-bluetooth-le-smart-development/)
@@ -87,7 +93,7 @@ bleno.startAdvertisingIBeacon(uuid, major, minor, measuredPower[, callback(error
 var scanData = new Buffer(...); // maximum 31 bytes
 var advertisementData = new Buffer(...); // maximum 31 bytes
 
-bleno.startAdvertisingWithEIRData(advertisementData, scanData[, callback(error)]);
+bleno.startAdvertisingWithEIRData(advertisementData[, scanData, callback(error)]);
 ```
 
   * For EIR format section [Bluetooth Core Specification](https://www.bluetooth.org/docman/handlers/downloaddoc.ashx?doc_id=229737) sections and 8 and 18 for more information the data format.
@@ -117,7 +123,7 @@ bleno.disconnect(); // Linux only
 #### Update RSSI
 
 ```javascript
-bleno.updateRssi([callback(error, rssi)]); // Linux only
+bleno.updateRssi([callback(error, rssi)]); // not available in OS X 10.9
 ```
 
 ### Primary Service
@@ -140,17 +146,18 @@ var Characteristic = bleno.Characteristic;
 
 var characteristic = new Characteristic({
     uuid: 'fffffffffffffffffffffffffffffff1', // or 'fff1' for 16-bit
-    properties: [ ... ], // can be a combination of 'read', 'write', 'writeWithoutResponse', 'notify'
-    secure: [ ... ], // enable security for properties, can be a combination of 'read', 'write', 'writeWithoutResponse', 'notify'
+    properties: [ ... ], // can be a combination of 'read', 'write', 'writeWithoutResponse', 'notify', 'indicate'
+    secure: [ ... ], // enable security for properties, can be a combination of 'read', 'write', 'writeWithoutResponse', 'notify', 'indicate'
     value: null, // optional static value, must be of type Buffer
     descriptors: [
         // see Descriptor for data type
     ],
     onReadRequest: null, // optional read request handler, function(offset, callback) { ... }
     onWriteRequest: null, // optional write request handler, function(data, offset, withoutResponse, callback) { ...}
-    onSubscribe: null, // optional notify subscribe handler, function(maxValueSize, updateValueCallback) { ...}
-    onUnsubscribe: null, // optional notify unsubscribe handler, function() { ...}
+    onSubscribe: null, // optional notify/indicate subscribe handler, function(maxValueSize, updateValueCallback) { ...}
+    onUnsubscribe: null, // optional notify/indicate unsubscribe handler, function() { ...}
     onNotify: null // optional notify sent handler, function() { ...}
+    onIndicate: null // optional indicate confirmation received handler, function() { ...}
 });
 ```
 
@@ -253,13 +260,15 @@ bleno.on('advertisingStop', callback);
 #### Services set
 
 ```javascript
-bleno.on('servicesSet', callback);
+bleno.on('servicesSet', callback(error));
+
+bleno.on('servicesSetError', callback(error));
 ```
 
 #### Accept
 
 ```javascript
-bleno.on('accept', callback(clientAddress)); // Linux only
+bleno.on('accept', callback(clientAddress)); // not available on OS X 10.9
 ```
 
 #### Disconnect
@@ -271,7 +280,7 @@ bleno.on('disconnect', callback(clientAddress)); // Linux only
 #### RSSI Update
 
 ```javascript
-bleno.on('rssiUpdate', callback(rssi)); // Linux only
+bleno.on('rssiUpdate', callback(rssi)); // not available on OS X 10.9
 ```
 
 ### Running on Linux
@@ -299,6 +308,16 @@ Example, specify ```hci1```:
 
 ```sh
 sudo BLENO_HCI_DEVICE_ID=1 node <your file>.js
+```
+
+#### Set custom device name
+
+By default bleno uses the hostname (```require('os').hostname()```) as the value for the device name (0x2a00) characterisic, to match the behaviour of OS X.
+
+A custom device name can be specified by setting the ```BLENO_DEVICE_NAME``` enviroment variable:
+
+```sh
+sudo BLENO_DEVICE_NAME="custom device name" node <your file>.js
 ```
 
 ## Roadmap (TODO)
@@ -350,7 +369,7 @@ sudo BLENO_HCI_DEVICE_ID=1 node <your file>.js
            * ~~write without response~~
            * ~~notify (subscribe, unsubscribe, value changed)~~
            * broadcast (maybe ?)
-           * indicate (maybe ?)
+           * ~~indicate~~
            * ~~secure~~
                * ~~read~~
                * ~~write~~
